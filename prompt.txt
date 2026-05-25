@@ -1,0 +1,137 @@
+Generate NPPE-style multiple-choice exam questions for Canadian engineering licensure preparation.
+
+You must output ONLY valid JSON in this exact structure:
+
+{
+  "questions": [
+    {
+      "question": "...",
+      "options": ["...", "...", "...", "..."],
+      "answer": 0,
+      "category": "ETHICS"
+    }
+  ]
+}
+
+---
+
+TOTAL QUESTIONS
+
+Generate exactly X questions total, where X is provided externally.
+
+If X is not explicitly provided, assume X = 110.
+
+---
+
+PROPORTIONAL DISTRIBUTION RULE
+
+Maintain the following category weight ratios:
+
+- PROFESSIONALISM: 10
+- ETHICS: 20
+- PROFESSIONAL_PRACTICE: 30
+- LAW_FOR_PROFESSIONAL_PRACTICE: 25
+- PROFESSIONAL_LAW: 10
+- DISCIPLINE_AND_REGULATION: 15
+
+Total weight = 110
+
+You MUST scale these proportions to match 50.
+
+---
+
+ALLOCATION METHOD (MANDATORY)
+
+1. Compute:
+   category_count = round((category_weight / 110) * X)
+
+2. Adjust rounding so that:
+   - Total sum of all categories = X exactly
+   - If there is rounding error:
+     - Add/subtract remaining questions starting from highest-weight categories in order:
+       PROFESSIONAL_PRACTICE → LAW_FOR_PROFESSIONAL_PRACTICE → ETHICS → DISCIPLINE_AND_REGULATION → PROFESSIONALISM → PROFESSIONAL_LAW
+
+3. Final result MUST match X exactly.
+
+---
+
+CONTENT DOMAIN
+
+All questions must be strictly based on NPPE competency areas:
+
+- Engineering ethics
+- Professional responsibility
+- Duty to public safety
+- Conflict of interest
+- Confidentiality
+- Due diligence
+- Negligence, liability, and standard of care
+- Regulatory obligations and statutory interpretation
+- Professional misconduct and disciplinary standards
+- Whistleblowing and duty to report
+- Competence, scope of practice, and limitations of expertise
+- Contract law and professional obligations
+- Tort law and negligence frameworks
+- Environmental and societal impacts of engineering work
+- Risk management, QA/QC, and professional due diligence
+- Relationships with employers, clients, regulators, and the public
+
+---
+
+QUESTION STYLE RULES (HARD MODE)
+
+- Questions must be highly challenging and exam-caliber (NPPE professional licensing level)
+- Every question must be scenario-based with realistic Canadian engineering contexts
+- Scenarios must include layered constraints (legal + ethical + contractual + safety conflicts)
+- Require deep judgment, not recall or definitions
+- Avoid obvious clue wording
+- Avoid telegraphing correct answers
+- Include ambiguity where multiple answers are defensible, but only ONE is best under professional standards
+- Distractors must be extremely close in correctness:
+  - All options must be plausible in real engineering practice
+  - All options must be professionally defensible at first glance
+  - Differences must be subtle (standard-of-care, hierarchy of duty, jurisdictional nuance)
+  - Avoid obviously wrong answers
+
+Include scenarios involving:
+- supervisor vs junior engineer conflicts
+- client pressure vs public safety obligations
+- regulatory reporting dilemmas
+- cost/schedule vs safety trade-offs
+- uncertainty and incomplete information
+- document control and professional sign-off responsibilities
+- inter-professional conflicts
+- whistleblowing thresholds
+
+---
+
+OUTPUT CONSTRAINTS
+
+- Exactly 4 answer choices per question
+- answer must be integer index (0–3)
+- category must be one of:
+  PROFESSIONALISM
+  ETHICS
+  PROFESSIONAL_PRACTICE
+  LAW_FOR_PROFESSIONAL_PRACTICE
+  PROFESSIONAL_LAW
+  DISCIPLINE_AND_REGULATION
+- No id field
+- No explanations
+- No markdown
+- No extra text outside JSON
+- Must be valid JSON parseable by JSON.parse()
+
+---
+
+QUALITY CONSTRAINT
+
+- At least 2 options per question must be plausibly correct under partial interpretation
+- Correct answer must be BEST under strict NPPE Canadian professional standards hierarchy
+- Distractors must be near-indistinguishable in correctness
+
+---
+
+ADDITIONAL RULE
+
+- Do not repeat previously generated questions
