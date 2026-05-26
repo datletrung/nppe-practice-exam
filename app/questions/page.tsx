@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Loading from "@/components/loading-icon";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheckCircle, faCopy } from "@fortawesome/free-regular-svg-icons";
 
 type ImportPayload = {
   questions: {
@@ -16,6 +18,8 @@ type DistributionItem = {
   category: string;
   count: number;
 };
+
+const IMPORT_PROMPT = "Generate NPPE-style multiple-choice exam questions for Canadian engineering licensure preparation.\n\nYou must output ONLY valid JSON in this exact structure:\n\n{\n  \"questions\": [\n    {\n      \"question\": \"...\",\n      \"options\": [\"...\", \"...\", \"...\", \"...\"],\n      \"answer\": 0,\n      \"category\": \"ETHICS\"\n    }\n  ]\n}\n\n---\n\nTOTAL QUESTIONS\n\nGenerate exactly X questions total, where X is provided externally.\n\nIf X is not explicitly provided, assume X = 110.\n\n---\n\nPROPORTIONAL DISTRIBUTION RULE\n\nMaintain the following category weight ratios:\n\n- PROFESSIONALISM: 10\n- ETHICS: 20\n- PROFESSIONAL_PRACTICE: 30\n- LAW_FOR_PROFESSIONAL_PRACTICE: 25\n- PROFESSIONAL_LAW: 10\n- DISCIPLINE_AND_REGULATION: 15\n\nTotal weight = 110\n\nYou MUST scale these proportions to match 50.\n\n---\n\nALLOCATION METHOD (MANDATORY)\n\n1. Compute:\n   category_count = round((category_weight / 110) * X)\n\n2. Adjust rounding so that:\n   - Total sum of all categories = X exactly\n   - If there is rounding error:\n     - Add/subtract remaining questions starting from highest-weight categories in order:\n       PROFESSIONAL_PRACTICE → LAW_FOR_PROFESSIONAL_PRACTICE → ETHICS → DISCIPLINE_AND_REGULATION → PROFESSIONALISM → PROFESSIONAL_LAW\n\n3. Final result MUST match X exactly.\n\n---\n\nCONTENT DOMAIN\n\nAll questions must be strictly based on NPPE competency areas:\n\n- Engineering ethics\n- Professional responsibility\n- Duty to public safety\n- Conflict of interest\n- Confidentiality\n- Due diligence\n- Negligence, liability, and standard of care\n- Regulatory obligations and statutory interpretation\n- Professional misconduct and disciplinary standards\n- Whistleblowing and duty to report\n- Competence, scope of practice, and limitations of expertise\n- Contract law and professional obligations\n- Tort law and negligence frameworks\n- Environmental and societal impacts of engineering work\n- Risk management, QA/QC, and professional due diligence\n- Relationships with employers, clients, regulators, and the public\n\n---\n\nQUESTION STYLE RULES (HARD MODE)\n\n- Questions must be highly challenging and exam-caliber (NPPE professional licensing level)\n- Every question must be scenario-based with realistic Canadian engineering contexts\n- Scenarios must include layered constraints (legal + ethical + contractual + safety conflicts)\n- Require deep judgment, not recall or definitions\n- Avoid obvious clue wording\n- Avoid telegraphing correct answers\n- Include ambiguity where multiple answers are defensible, but only ONE is best under professional standards\n- Distractors must be extremely close in correctness:\n  - All options must be plausible in real engineering practice\n  - All options must be professionally defensible at first glance\n  - Differences must be subtle (standard-of-care, hierarchy of duty, jurisdictional nuance)\n  - Avoid obviously wrong answers\n\nInclude scenarios involving:\n- supervisor vs junior engineer conflicts\n- client pressure vs public safety obligations\n- regulatory reporting dilemmas\n- cost/schedule vs safety trade-offs\n- uncertainty and incomplete information\n- document control and professional sign-off responsibilities\n- inter-professional conflicts\n- whistleblowing thresholds\n\n---\n\nOUTPUT CONSTRAINTS\n\n- Exactly 4 answer choices per question\n- answer must be integer index (0–3)\n- category must be one of:\n  PROFESSIONALISM\n  ETHICS\n  PROFESSIONAL_PRACTICE\n  LAW_FOR_PROFESSIONAL_PRACTICE\n  PROFESSIONAL_LAW\n  DISCIPLINE_AND_REGULATION\n- No id field\n- No explanations\n- No markdown\n- No extra text outside JSON\n- Must be valid JSON parseable by JSON.parse()\n\n---\n\nQUALITY CONSTRAINT\n\n- At least 2 options per question must be plausibly correct under partial interpretation\n- Correct answer must be BEST under strict NPPE Canadian professional standards hierarchy\n- Distractors must be near-indistinguishable in correctness\n\n---\n\nADDITIONAL RULE\n\n- Do not repeat previously generated questions";
 
 export default function ImportPage() {
   // IMPORT
@@ -36,6 +40,8 @@ export default function ImportPage() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
+  const [copied, setCopied] = useState(false);
+
   const CATEGORY_LABELS: Record<string, string> = {
     PROFESSIONALISM: "Professionalism",
     ETHICS: "Ethics",
@@ -49,6 +55,19 @@ export default function ImportPage() {
     () => dist.reduce((sum, d) => sum + d.count, 0),
     [dist]
   );
+
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard.writeText(IMPORT_PROMPT);
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 3000);
+    } catch (e) {
+      setCopied(false);
+    }
+  }
 
   // ---------------- IMPORT ----------------
   function validate(json: any): json is ImportPayload {
@@ -179,15 +198,27 @@ export default function ImportPage() {
       <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto">
 
         {/* IMPORT */}
-        <div className="w-full lg:w-1/2 bg-white rounded-xl shadow border border-gray-200 p-6 space-y-4">
-          <h2 className="text-xl font-bold">Import Questions</h2>
+        <div className="flex flex-col justify-between w-full lg:w-1/2 bg-white rounded-xl shadow border border-gray-200 p-6 space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold">Import Questions</h2>
+            
+            <button
+              onClick={copyPrompt}
+              className={`text-sm px-3 py-1 rounded cursor-pointer transition ${
+                copied
+                  ? "bg-green-600 text-white"
+                  : "bg-green-700 hover:bg-green-800 text-white"
+              }`}
+            >
+              {copied ? <FontAwesomeIcon icon={faCheckCircle} /> : <FontAwesomeIcon icon={faCopy} />} Prompt
+            </button>
+          </div>
 
           <textarea
             value={jsonInput}
             onChange={(e) => setJsonInput(e.target.value)}
-            rows={18}
             placeholder="Paste JSON here..."
-            className="w-full p-3 border border-gray-200 rounded-md font-mono text-sm h-96"
+            className="w-full p-3 border border-gray-200 rounded-md font-mono text-sm h-fit flex-1 resize-none"
           />
 
           <button

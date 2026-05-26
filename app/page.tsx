@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFlag } from "@fortawesome/free-regular-svg-icons";
 import { faBookOpen, faChevronLeft } from "@fortawesome/free-solid-svg-icons";
 import Loading from "@/components/loading-icon";
+import Link from "next/link";
 
 const TOTAL_TIME = 60 * 150; // 2.5 hours
 const TOTAL_QUESTIONS = 110;
@@ -88,6 +89,7 @@ export default function Page() {
       });
 
       setQuestions(shuffled);
+      setTimeLeft(TOTAL_TIME);
     } finally {
       setLoading(false);
     }
@@ -95,6 +97,7 @@ export default function Page() {
 
   useEffect(() => {
     if (!started || submitted) return;
+    if (questions.length === 0) return; // IMPORTANT: wait for load
 
     const t = setInterval(() => {
       setTimeLeft((s) => {
@@ -106,7 +109,7 @@ export default function Page() {
     }, 1000);
 
     return () => clearInterval(t);
-  }, [started, submitted]);
+  }, [started, submitted, questions.length]);
 
   useEffect(() => {
     if (!started || submitted) return;
@@ -218,7 +221,6 @@ export default function Page() {
 
   useEffect(() => {
     const handleResize = () => {
-      console.log(window.innerWidth);
       if (window.innerWidth <= 992) {
         setShowSidebar(false);
       } else {
@@ -234,6 +236,18 @@ export default function Page() {
       window.removeEventListener("resize", handleResize);
     };
   }, []);
+  
+  useEffect(() => {
+    if (showSidebar && window.innerWidth <= 992) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showSidebar]);
 
   if (started && loading) {
     return (
@@ -254,13 +268,11 @@ export default function Page() {
           </h1>
 
           <p className="text-gray-600 text-sm leading-relaxed">
-            This practice exam simulates the National Professional Practice Examination (NPPE)
-            format used in Canada. It focuses on engineering ethics, professional responsibility,
-            law, and regulatory practice.
+            This practice exam is designed to reflect the general format and subject areas covered in the National Professional Practice Examination (NPPE), including engineering ethics, professional responsibility, law, and regulatory practice in Canada.
           </p>
 
           <div className="text-left text-sm text-gray-700 space-y-1">
-            <p>• 2.5 hours timed session</p>
+            <p>• 2.5-hour timed session</p>
             <p>• Multiple-choice questions</p>
             <p>• Flag questions for review</p>
             <p>• Instant scoring after submission</p>
@@ -271,46 +283,72 @@ export default function Page() {
             Tip: Focus on ethical reasoning rather than memorization.
           </div>
 
-          <button
-            onClick={async () => {
-              setStarted(true);
-              await loadQuestions();
-            }}
-            className="w-full mt-4 px-6 py-3 bg-green-700 text-white rounded-xl shadow hover:bg-green-800 cursor-pointer"
-          >
-            Start Exam
-          </button>
+          <div className="flex flex-col items-center jsutify-center gap-2">
+            <button
+              onClick={async () => {
+                setStarted(true);
+                await loadQuestions();
+              }}
+              className="w-full mt-4 py-4 h-10 flex items-center justify-center bg-green-700 text-white rounded-lg shadow hover:bg-green-800 cursor-pointer"
+            >
+              Start Exam
+            </button>
+
+            <Link
+              href="/questions"
+              className="w-full py-4 h-10 flex items-center justify-center border border-green-700 text-green-700 rounded-lg shadow hover:bg-green-200 cursor-pointer"
+            >
+              Question Bank
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex">
+    <div className="flex h-screen overflow-hidden">
+      {/* MOBILE BACKDROP */}
+      {showSidebar && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
 
-      {/* LEFT SIDEBAR BUTTON*/}
+      {/* TOGGLE BUTTON (when closed) */}
+      {!showSidebar && (
+        <div
+          onClick={() => setShowSidebar(true)}
+          className="fixed lg:hidden top-6 left-0 w-12 h-12 z-50 flex items-center justify-center cursor-pointer rounded-r-md shadow-md border border-gray-200 bg-white"
+        >
+          <FontAwesomeIcon icon={faBookOpen} />
+        </div>
+      )}
+
+      {/* SIDEBAR */}
       <div
-        onClick={() => setShowSidebar(true)}
-        className={`top-6 w-12 h-12 flex items-center justify-center cursor-pointer rounded-r-md shadow-md border border-gray-200
-          ${showSidebar ? "hidden" : "sticky"}
+        className={`
+          fixed lg:relative z-50
+          top-0 left-0
+          h-full
+          w-[85%] max-w-96 lg:w-96
+          bg-white
+          transition-transform duration-200
+          ${showSidebar ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        <FontAwesomeIcon icon={faBookOpen} />
-      </div>
-
-      {/* LEFT SIDEBAR */}
-      <div className={`w-full lg:w-1/3 lg:max-w-96 lg:pr-3 py-3 h-fit ${showSidebar ? "sticky" : "hidden"}`}>
-        <div className="relative bg-white h-[calc(100vh-2rem)] flex flex-col justify-between p-4 rounded-r-xl lg:shadow lg:border space-y-4">
+        <div className="relative h-full lg:h-[calc(100vh-2rem)] flex flex-col justify-between p-4 space-y-4 overflow-y-auto lg:overflow-visible">
           <div
             onClick={() => setShowSidebar(false)}
-            className={`left-0 top-3 w-12 h-12 flex items-center justify-center cursor-pointer rounded-r-md shadow-md border border-gray-200
+            className={`lg:hidden left-0 top-3 w-12 h-12 flex items-center justify-center cursor-pointer rounded-r-md shadow-md border border-gray-200
               ${!showSidebar ? "hidden" : "absolute"}
             `}
           >
             <FontAwesomeIcon icon={faChevronLeft} />
           </div>
 
-          <div className="flex flex-col space-y-4">
+          <div className="flex flex-col space-y-4 flex-1 overflow-y-auto">
             {/* TIMER */}
             <div className="text-center border-b pb-3">
               <div className="text-sm text-gray-500">Time Left</div>
@@ -369,14 +407,14 @@ export default function Page() {
             {!submitted ? (
               <button
                 onClick={submit}
-                className="w-full bg-green-700 text-white py-3 rounded-xl shadow hover:bg-green-800 cursor-pointer"
+                className="w-full py-4 h-10 flex items-center justify-center bg-green-700 text-white rounded-lg shadow hover:bg-green-800 cursor-pointer"
               >
                 Submit Exam
               </button>
             ) : (
               <button
                 onClick={newExam}
-                className="w-full bg-blue-600 text-white py-3 rounded-xl shadow hover:bg-blue-700 cursor-pointer"
+                className="w-full py-4 h-10 flex items-center justify-center bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 cursor-pointer"
               >
                 New Exam
               </button>
@@ -386,7 +424,7 @@ export default function Page() {
       </div>
 
       {/* RIGHT CONTENT */}
-      <div className={`w-full h-screen overflow-y-scroll p-3 space-y-6 ${showSidebar ? "hidden lg:block" : "block"}`}>
+      <div className="flex-1 h-screen overflow-y-auto p-3 space-y-6">
         <h1 className="text-2xl font-bold mb-4">NPPE Practice Exam</h1>
 
         {questions.map((q, i) => {
@@ -468,14 +506,14 @@ export default function Page() {
         {!submitted ? (
           <button
             onClick={submit}
-            className="lg:hidden w-full bg-green-700 text-white py-3 rounded-xl shadow hover:bg-green-800 cursor-pointer"
+            className="lg:hidden w-full py-4 h-10 flex items-center justify-center bg-green-700 text-white rounded-lg shadow hover:bg-green-800 cursor-pointer"
           >
             Submit Exam
           </button>
         ) : (
           <button
             onClick={newExam}
-            className="lg:hidden w-full bg-blue-600 text-white py-3 rounded-xl shadow hover:bg-blue-700 cursor-pointer"
+            className="lg:hidden w-full py-4 h-10 flex items-center justify-center bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 cursor-pointer"
           >
             New Exam
           </button>
