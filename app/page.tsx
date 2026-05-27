@@ -7,8 +7,10 @@ import { faBookOpen, faChevronLeft } from "@fortawesome/free-solid-svg-icons";
 import Loading from "@/components/loading-icon";
 import Link from "next/link";
 
-const TOTAL_TIME = 60 * 150; // 2.5 hours
-const TOTAL_QUESTIONS = 110;
+const TOTAL_TIME_FULL_EXAM = 60 * 150; // 2.5 hours
+const TOTAL_QUESTIONS_FULL_EXAM = 110;
+const TOTAL_TIME_SHORT_EXAM = 60 * 60; // 1 hours
+const TOTAL_QUESTIONS_SHORT_EXAM = 45;
 
 type Question = {
   id: string;
@@ -41,14 +43,23 @@ export default function Page() {
 
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [flags, setFlags] = useState<Record<string, boolean>>({});
-  const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
+
+  const [examType, setExamType] = useState("full");
+  const [timeLeft, setTimeLeft] = useState(TOTAL_TIME_FULL_EXAM);
+  const [totalTime, setTotalTime] = useState(TOTAL_TIME_FULL_EXAM);
+  const [timeTaken, setTimeTaken] = useState(0);
+  const startTimeRef = useRef<number | null>(null);
 
   const [showModal, setShowModal] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
-
-  const totalTime = TOTAL_TIME;
   const refs = useRef<Record<string, HTMLDivElement | null>>({});
   const hasAutoSubmitted = useRef(false);
+
+  const answeredCount = Object.keys(answers).length;
+  const totalCount = questions.length;
+  const progress = totalCount ? (answeredCount / totalCount) * 100 : 0;
+
+  const breakdown = categoryBreakdown();
 
   const CATEGORY_LABELS: Record<string, string> = {
     PROFESSIONALISM: "Professionalism",
@@ -59,12 +70,16 @@ export default function Page() {
     DISCIPLINE_AND_REGULATION: "Regulation & Discipline",
   };
 
-  async function loadQuestions() {
+  function printReview() {
+    window.print();
+  }
+
+  async function loadQuestions(examType: string) {
     try {
       setLoading(true);
 
       const res = await fetch(
-        `/api/questions/fetch?limit=${TOTAL_QUESTIONS}`
+        `/api/questions/fetch?limit=${examType === 'full' ? TOTAL_QUESTIONS_FULL_EXAM : TOTAL_QUESTIONS_SHORT_EXAM}`
       );
 
       const data = await res.json();
@@ -89,7 +104,10 @@ export default function Page() {
       });
 
       setQuestions(shuffled);
-      setTimeLeft(TOTAL_TIME);
+      setTotalTime(examType === 'full' ? TOTAL_QUESTIONS_FULL_EXAM : TOTAL_QUESTIONS_SHORT_EXAM);
+      setTimeLeft(examType === 'full' ? TOTAL_TIME_FULL_EXAM : TOTAL_TIME_SHORT_EXAM);
+      startTimeRef.current = Date.now();
+      setTimeTaken(0);
     } finally {
       setLoading(false);
     }
@@ -97,15 +115,17 @@ export default function Page() {
 
   useEffect(() => {
     if (!started || submitted) return;
-    if (questions.length === 0) return; // IMPORTANT: wait for load
+    if (questions.length === 0) return;
 
     const t = setInterval(() => {
       setTimeLeft((s) => {
-        if (s <= 1) {
-          return 0;
-        }
+        if (s <= 1) return 0;
         return s - 1;
       });
+
+      if (startTimeRef.current) {
+        setTimeTaken(Math.floor((Date.now() - startTimeRef.current) / 1000));
+      }
     }, 1000);
 
     return () => clearInterval(t);
@@ -118,6 +138,9 @@ export default function Page() {
       hasAutoSubmitted.current = true;
       setSubmitted(true);
       setShowModal(true);
+      if (startTimeRef.current) {
+        setTimeTaken(Math.floor((Date.now() - startTimeRef.current) / 1000));
+      }
     }
   }, [timeLeft, started, submitted]);
 
@@ -186,13 +209,14 @@ export default function Page() {
   }
 
   function newExam() {
-    loadQuestions();
+    loadQuestions(examType);
     
     setStarted(false);
     setSubmitted(false);
     setAnswers({});
     setFlags({});
-    setTimeLeft(TOTAL_TIME);
+    setTotalTime(examType === 'full' ? TOTAL_TIME_FULL_EXAM : TOTAL_TIME_SHORT_EXAM);
+    setTimeLeft(examType === 'full' ? TOTAL_TIME_FULL_EXAM : TOTAL_TIME_SHORT_EXAM);
     setShowModal(false);
 
     hasAutoSubmitted.current = false;
@@ -209,8 +233,6 @@ export default function Page() {
 
     return `${hh}:${mm}:${ss}`;
   }
-
-  const timeTaken = totalTime - timeLeft;
 
   function goTo(qid: string) {
     refs.current[qid]?.scrollIntoView({
@@ -261,18 +283,16 @@ export default function Page() {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50 p-6">
         <div className="max-w-3xl w-full bg-white p-8 rounded-2xl shadow-lg border border-gray-100 text-center space-y-4">
-
-
           <h1 className="text-2xl font-bold">
-            NPPE Practice Exam
+            National Professional Practice Exam Simulator
           </h1>
 
           <p className="text-gray-600 text-sm leading-relaxed">
-            This practice exam is designed to reflect the general format and subject areas covered in the National Professional Practice Examination (NPPE), including engineering ethics, professional responsibility, law, and regulatory practice in Canada.
+            This practice set is designed to help users review general topics commonly associated with professional practice examinations in Canada, including ethics, professional responsibility, law, and regulatory practice.
           </p>
 
           <div className="text-left text-sm text-gray-700 space-y-1">
-            <p>• 2.5-hour timed session</p>
+            <p>• Timed session</p>
             <p>• Multiple-choice questions</p>
             <p>• Flag questions for review</p>
             <p>• Instant scoring after submission</p>
@@ -284,15 +304,28 @@ export default function Page() {
           </div>
 
           <div className="flex flex-col items-center jsutify-center gap-2">
-            <button
-              onClick={async () => {
-                setStarted(true);
-                await loadQuestions();
-              }}
-              className="w-full mt-4 py-4 h-10 flex items-center justify-center bg-green-700 text-white rounded-lg shadow hover:bg-green-800 cursor-pointer"
-            >
-              Start Exam
-            </button>
+            <div className="w-full flex gap-2 items-center justify-center">
+              <button
+                onClick={async () => {
+                  setStarted(true);
+                  setExamType("short");
+                  await loadQuestions("short");
+                }}
+                className="w-full mt-4 py-4 h-10 flex items-center justify-center bg-green-700 text-white rounded-lg shadow hover:bg-green-800 cursor-pointer"
+              >
+                Short Exam
+              </button>
+              <button
+                onClick={async () => {
+                  setStarted(true);
+                  setExamType("full");
+                  await loadQuestions("full");
+                }}
+                className="w-full mt-4 py-4 h-10 flex items-center justify-center bg-green-700 text-white rounded-lg shadow hover:bg-green-800 cursor-pointer"
+              >
+                Full Exam
+              </button>
+            </div>
 
             <Link
               href="/questions"
@@ -301,6 +334,10 @@ export default function Page() {
               Question Bank
             </Link>
           </div>
+          
+          <p className="text-gray-600 text-xs leading-relaxed">
+            Disclaimer: This is an unofficial practice tool created for educational purposes only. It is not affiliated with, endorsed by, or connected to Engineers Canada or any provincial/territorial engineering regulator.
+          </p>
         </div>
       </div>
     );
@@ -350,7 +387,7 @@ export default function Page() {
 
           <div className="flex flex-col space-y-4 flex-1 overflow-y-auto">
             {/* TIMER */}
-            <div className="text-center border-b pb-3">
+            <div className="text-center">
               <div className="text-sm text-gray-500">Time Left</div>
 
               <div
@@ -363,6 +400,16 @@ export default function Page() {
                 }`}
               >
                 {formatTime(timeLeft)}
+              </div>
+            </div>
+
+            {/* PROGRESS BAR */}
+            <div className="">
+              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-green-600 transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
               </div>
             </div>
 
@@ -412,20 +459,50 @@ export default function Page() {
                 Submit Exam
               </button>
             ) : (
-              <button
-                onClick={newExam}
-                className="w-full py-4 h-10 flex items-center justify-center bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 cursor-pointer"
-              >
-                New Exam
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={newExam}
+                  className="w-full py-4 h-10 flex items-center justify-center bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 cursor-pointer"
+                >
+                  New Exam
+                </button>
+                <button
+                  onClick={printReview}
+                  className="w-full py-4 h-10 flex items-center justify-center bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer"
+                >
+                  Print Review
+                </button>
+              </div>
             )}
           </div>
         </div>
       </div>
 
       {/* RIGHT CONTENT */}
-      <div className="flex-1 h-screen overflow-y-auto p-3 space-y-6">
+      <div id="print-area" className="flex-1 h-screen overflow-y-auto p-3 space-y-6">
         <h1 className="text-2xl font-bold mb-4">NPPE Practice Exam</h1>
+        
+          {/* PRINT SUMMARY (ONLY IN PRINT) */}
+          <div className="hidden print:block">
+          <h2 className="text-lg font-bold mb-2">Category Breakdown</h2>
+
+          <div className="space-y-2 text-sm">
+            {breakdown.map((c) => (
+              <div key={c.category} className="border p-2 rounded">
+                <div className="flex justify-between">
+                  <span className="font-semibold">
+                    {CATEGORY_LABELS[c.category] ?? c.category}
+                  </span>
+                  <span>{c.correct}/{c.total}</span>
+                </div>
+
+                <div className="text-xs text-gray-600">
+                  {c.percent}% correct
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {questions.map((q, i) => {
           const userAns = answers[q.id];
@@ -511,12 +588,20 @@ export default function Page() {
             Submit Exam
           </button>
         ) : (
-          <button
-            onClick={newExam}
-            className="lg:hidden w-full py-4 h-10 flex items-center justify-center bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 cursor-pointer"
-          >
-            New Exam
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={newExam}
+              className="lg:hidden w-full py-4 h-10 flex items-center justify-center bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 cursor-pointer"
+            >
+              New Exam
+            </button>
+            <button
+              onClick={printReview}
+              className="w-full py-4 h-10 flex items-center justify-center bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer"
+            >
+              Print Review
+            </button>
+          </div>
         )}
       </div>
 
@@ -542,7 +627,7 @@ export default function Page() {
                 Category Breakdown
               </div>
 
-              {categoryBreakdown().map((c) => (
+              {breakdown.map((c) => (
                 <div
                   key={c.category}
                   className="border rounded-md p-2 text-sm"
@@ -568,7 +653,7 @@ export default function Page() {
 
             <button
               onClick={() => setShowModal(false)}
-              className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
+              className="w-full px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
             >
               Review
             </button>

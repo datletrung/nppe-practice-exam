@@ -26,3 +26,33 @@ body {
 .animate-loading-slide {
   animation: loading-slide 1.2s ease-in-out infinite;
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #print-area,
+  #print-area * {
+    visibility: visible;
+  }
+
+  #print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* hide sidebar completely */
+  aside, nav {
+    display: none !important;
+  }
+
+  /* hide buttons/modals UI */
+  button {
+    display: none !important;
+  }
+}
