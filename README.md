@@ -2,7 +2,7 @@
 
 An unofficial, browser-based practice tool for Canadian engineering professionals preparing for the **National Professional Practice Exam (NPPE)**. Covers ethics, professional responsibility, law, and regulatory practice.
 
-> **Disclaimer:** This is an unofficial practice tool created for educational purposes only. It is not affiliated with, endorsed by, or connected to Engineers Canada or any provincial/territorial engineering regulator.
+> **Disclaimer:** This is an unofficial practice tool created for educational purposes only. This project is not affiliated with or endorsed by Engineers Canada or any provincial/territorial engineering regulator. All trademarks and organization names remain the property of their respective owners.
 
 ---
 
@@ -72,4 +72,4 @@ Please ensure generated questions cover realistic professional practice scenario
 
 ## 📄 License
 
-This project is released for educational use. See [LICENSE](LICENSE) for details.
+This project is released for educational use.
