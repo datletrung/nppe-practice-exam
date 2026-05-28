@@ -72,4 +72,4 @@ Please ensure generated questions cover realistic professional practice scenario
 
 ## 📄 License
 
-This project is released for educational use.
+This project is released for educational use. See [LICENSE](LICENSE) for details.
