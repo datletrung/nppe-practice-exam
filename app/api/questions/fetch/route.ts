@@ -46,7 +46,7 @@ function allocate(limit: number) {
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const limit = Number(searchParams.get("limit") || 110);
+  const limit = Number(searchParams.get("limit") || 100);
 
   try {
     const distribution = allocate(limit);

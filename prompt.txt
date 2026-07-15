@@ -19,7 +19,7 @@ TOTAL QUESTIONS
 
 Generate exactly X questions total, where X is provided externally.
 
-If X is not explicitly provided, assume X = 110.
+If X is not explicitly provided, assume X = 100.
 
 ---
 
@@ -34,7 +34,7 @@ Maintain the following category weight ratios:
 - PROFESSIONAL_LAW: 10
 - DISCIPLINE_AND_REGULATION: 15
 
-Total weight = 110
+Total weight = 100
 
 You MUST scale these proportions to match 50.
 
@@ -43,7 +43,7 @@ You MUST scale these proportions to match 50.
 ALLOCATION METHOD (MANDATORY)
 
 1. Compute:
-   category_count = round((category_weight / 110) * X)
+   category_count = round((category_weight / 100) * X)
 
 2. Adjust rounding so that:
    - Total sum of all categories = X exactly

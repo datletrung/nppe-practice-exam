@@ -8,9 +8,9 @@ import Loading from "@/components/loading-icon";
 import Link from "next/link";
 
 const TOTAL_TIME_FULL_EXAM = 60 * 150; // 2.5 hours
-const TOTAL_QUESTIONS_FULL_EXAM = 110;
+const TOTAL_QUESTIONS_FULL_EXAM = 100;
 const TOTAL_TIME_SHORT_EXAM = 60 * 60; // 1 hours
-const TOTAL_QUESTIONS_SHORT_EXAM = 45;
+const TOTAL_QUESTIONS_SHORT_EXAM = 35;
 
 type Question = {
   id: string;
@@ -281,7 +281,7 @@ export default function Page() {
 
   if (!started) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50 p-6">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
         <div className="max-w-3xl w-full bg-white p-8 rounded-2xl shadow-lg border border-gray-100 text-center space-y-4">
           <h1 className="text-2xl font-bold">
             National Professional Practice Exam Simulator
@@ -339,6 +339,7 @@ export default function Page() {
             Disclaimer: This is an unofficial practice tool created for educational purposes only. It is not affiliated with, endorsed by, or connected to Engineers Canada or any provincial/territorial engineering regulator.
           </p>
         </div>
+        <ProductFooter />
       </div>
     );
   }
@@ -369,7 +370,7 @@ export default function Page() {
           fixed lg:relative z-50
           top-0 left-0
           h-full
-          w-[85%] max-w-96 lg:w-96
+          w-[85%] max-w-96 lg:w-78
           bg-white
           transition-transform duration-200
           ${showSidebar ? "translate-x-0" : "-translate-x-full"}
@@ -661,5 +662,33 @@ export default function Page() {
         </div>
       )}
     </div>
+  );
+}
+
+function ProductFooter() {
+  return (
+    <footer className="text-center text-sm text-green-700 py-4">
+      <div>
+        NPPE Practice Exam Simulator by{" "}
+        <Link
+          className="font-semibold text-green-800"
+          target="_blank"
+          href="https://daydreamtech.ca"
+        >
+          Daydream Technology Inc.
+        </Link>
+      </div>
+      <div className="w-full flex gap-1 justify-center">
+        © {new Date().getFullYear()} 
+        <Link
+          className=""
+          target="_blank"
+          href="https://daydreamtech.ca"
+        >
+          Daydream Technology Inc.
+        </Link>
+        All rights reserved.
+      </div>
+    </footer>
   );
 }

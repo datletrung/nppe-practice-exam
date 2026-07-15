@@ -31,8 +31,8 @@ An unofficial, browser-based practice tool for Canadian engineering professional
 
 | Mode | Questions | Time Limit |
 |---|---|---|
-| **Short Exam** | 45 questions | 1 hour |
-| **Full Exam** | 110 questions | 2 hours 30 min |
+| **Short Exam** | 35 questions | 1 hour |
+| **Full Exam** | 100 questions | 2 hours 30 min |
 | **Question Bank** | Browse all questions |
 
 ---

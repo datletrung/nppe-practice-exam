@@ -7,9 +7,9 @@ export async function proxy(req: NextRequest) {
     headers: req.headers,
   });
 
-  const path = req.nextUrl.pathname;
+  const { pathname, search } = req.nextUrl;
 
-  const isAuthRoute = path.startsWith("/auth");
+  const isAuthRoute = pathname.startsWith("/auth");
 
   // If on auth page
   if (isAuthRoute) {
@@ -19,10 +19,13 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // ONLY protecting "/"
-  if (path === "/") {
+  // Protect "/questions"
+  if (pathname === "/questions") {
     if (!session) {
-      return NextResponse.redirect(new URL("/auth", req.url));
+      const authUrl = new URL("/auth", req.url);
+      authUrl.searchParams.set("callbackUrl", `${pathname}${search}`);
+
+      return NextResponse.redirect(authUrl);
     }
   }
 
