@@ -31,10 +31,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <header>
+      <head>
         <link rel="manifest" href="/manifest.json" />
         <PWAHeader />
-      </header>
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

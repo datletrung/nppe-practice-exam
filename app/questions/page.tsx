@@ -197,7 +197,7 @@ export default function ImportPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto mb-6">
-        <nav className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-sm">
+        <nav className="flex flex-col sm:flex-row items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-sm">
           <a
             href="/"
             className="text-sm font-medium text-gray-600 hover:text-black hover:underline transition"
@@ -205,7 +205,7 @@ export default function ImportPage() {
             <FontAwesomeIcon icon={faChevronLeft} />Back to Home
           </a>
 
-          <span className="text-lg font-semibold text-gray-900">
+          <span className="text-center text-lg font-semibold text-gray-900">
             Question Management
           </span>
 
