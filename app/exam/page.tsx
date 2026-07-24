@@ -19,7 +19,6 @@ const TOTAL_TIME_SHORT_EXAM = 60 * 60; // 1 hour
 const TOTAL_QUESTIONS_SHORT_EXAM = 35;
 
 const MIN_CUSTOM_QUESTIONS_PER_CATEGORY = 0;
-const MAX_CUSTOM_QUESTIONS_PER_CATEGORY = 50;
 const MIN_TIMER_MINUTES = 15;
 const MAX_TIMER_MINUTES = 180;
 
@@ -83,6 +82,12 @@ export default function Page() {
         Category,
         number
       >
+  );
+  const [categoryMaxes, setCategoryMaxes] = useState<Record<Category, number>>(
+    () =>
+      Object.fromEntries(
+        CATEGORIES.map((c) => [c.key, 0])
+      ) as Record<Category, number>
   );
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerMinutes, setTimerMinutes] = useState(60);
@@ -245,6 +250,28 @@ export default function Page() {
     }
   }, [timeLeft, phase, submitted]);
 
+  useEffect(() => {
+    async function loadCategoryCounts() {
+      try {
+        const res = await fetch("/api/questions/count");
+        const data = await res.json();
+
+        setCategoryMaxes(
+          Object.fromEntries(
+            CATEGORIES.map((c) => [
+              c.key,
+              data.data?.[c.key] ?? 0,
+            ])
+          ) as Record<Category, number>
+        );
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loadCategoryCounts();
+  }, []);
+
   function select(qid: string, idx: number) {
     if (submitted) return;
     setAnswers((prev) => ({ ...prev, [qid]: idx }));
@@ -327,7 +354,7 @@ export default function Page() {
     setCustomCounts((prev) => ({
       ...prev,
       [cat]: Math.min(
-        MAX_CUSTOM_QUESTIONS_PER_CATEGORY,
+        categoryMaxes[cat],
         Math.max(MIN_CUSTOM_QUESTIONS_PER_CATEGORY, prev[cat] + delta)
       ),
     }));
@@ -338,7 +365,7 @@ export default function Page() {
     setCustomCounts((prev) => ({
       ...prev,
       [cat]: Math.min(
-        MAX_CUSTOM_QUESTIONS_PER_CATEGORY,
+        categoryMaxes[cat],
         Math.max(MIN_CUSTOM_QUESTIONS_PER_CATEGORY, value)
       ),
     }));
@@ -467,46 +494,56 @@ export default function Page() {
                       Topics
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       {CATEGORIES.map((c) => (
                         <div
                           key={c.key}
                           className="flex items-center justify-between gap-3"
                         >
-                          <span className="text-sm text-gray-700">
+                          <span className="text-sm text-gray-700 font-medium">
                             {c.label}
                           </span>
 
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => updateCustomCount(c.key, -1)}
-                              className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-300 bg-white hover:bg-gray-50 cursor-pointer"
-                              aria-label={`Decrease ${c.label} questions`}
-                            >
-                              <FontAwesomeIcon icon={faMinus} className="text-xs" />
-                            </button>
-
+                          <div className="flex items-center gap-4 flex-1 max-w-md">
                             <input
-                              type="number"
-                              min={MIN_CUSTOM_QUESTIONS_PER_CATEGORY}
-                              max={MAX_CUSTOM_QUESTIONS_PER_CATEGORY}
+                              type="range"
+                              min={0}
+                              max={categoryMaxes[c.key]}
                               value={customCounts[c.key]}
                               onChange={(e) =>
-                                setCustomCountDirect(
-                                  c.key,
-                                  parseInt(e.target.value, 10)
-                                )
+                                setCustomCountDirect(c.key, Number(e.target.value))
                               }
-                              className="w-14 text-center bg-white text-sm rounded-md border border-gray-300 py-1"
+                              style={{
+                                background: `linear-gradient(
+                                  to right,
+                                  #16a34a 0%,
+                                  #16a34a ${(customCounts[c.key] / categoryMaxes[c.key]) * 100}%,
+                                  #d1d5db ${(customCounts[c.key] / categoryMaxes[c.key]) * 100}%,
+                                  #d1d5db 100%
+                                )`,
+                              }}
+                              className="flex-1 slider"
                             />
 
-                            <button
-                              onClick={() => updateCustomCount(c.key, 1)}
-                              className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-300 bg-white hover:bg-gray-50 cursor-pointer"
-                              aria-label={`Increase ${c.label} questions`}
-                            >
-                              <FontAwesomeIcon icon={faPlus} className="text-xs" />
-                            </button>
+                            <div className="flex items-center gap-1 text-sm">
+                              <input
+                                type="number"
+                                min={0}
+                                max={categoryMaxes[c.key]}
+                                value={customCounts[c.key]}
+                                onChange={(e) =>
+                                  setCustomCountDirect(c.key, Number(e.target.value))
+                                }
+                                className="w-10 text-center rounded-md border border-gray-300 bg-white py-1 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                              />
+
+                              <span className="text-gray-500 whitespace-nowrap">
+                                / 
+                                <span className="inline-block w-8 text-left">
+                                  {categoryMaxes[c.key]}
+                                </span>
+                              </span>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -541,6 +578,7 @@ export default function Page() {
                         <span>Minutes</span>
                         <span className="font-semibold">{timerMinutes}</span>
                       </div>
+
                       <input
                         type="range"
                         min={MIN_TIMER_MINUTES}
@@ -550,7 +588,16 @@ export default function Page() {
                         onChange={(e) =>
                           setTimerMinutes(parseInt(e.target.value, 10))
                         }
-                        className="w-full"
+                        style={{
+                          background: `linear-gradient(
+                            to right,
+                            #16a34a 0%,
+                            #16a34a ${(timerMinutes-MIN_TIMER_MINUTES) / (MAX_TIMER_MINUTES-MIN_TIMER_MINUTES) * 100}%,
+                            #d1d5db ${(timerMinutes-MIN_TIMER_MINUTES) / (MAX_TIMER_MINUTES-MIN_TIMER_MINUTES) * 100}%,
+                            #d1d5db 100%
+                          )`,
+                        }}
+                        className="w-full slider"
                       />
                     </div>
                   )}
